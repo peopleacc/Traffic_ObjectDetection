@@ -1,4 +1,12 @@
-annotated-types==0.7.0
+Django>=4.2,<5.0
+gunicorn
+whitenoise
+opencv-python-headless
+numpy
+Pillow
+ultralytics
+# Note: ultralytics requires PyTorch. We install CPU PyTorch wheels in the Dockerfile.
+# If you need GPU support, change Dockerfile and install appropriate CUDA-enabled PyTorch.annotated-types==0.7.0
 anyio==4.12.0
 appdirs==1.4.4
 argcomplete==3.6.3
