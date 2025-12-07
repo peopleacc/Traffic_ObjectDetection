@@ -18,8 +18,8 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel
 
-# Install CPU PyTorch wheels (adjust or remove for GPU builds)
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision
+# Install CPU PyTorch wheels with versions matching requirements (adjust for GPU builds)
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.9.1 torchvision==0.24.1
 
 RUN pip install --no-cache-dir -r /app/requirements.txt
 

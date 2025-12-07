@@ -1,4 +1,4 @@
-Django>=4.2,<5.0
+Django==4.2.27
 gunicorn
 whitenoise
 opencv-python-headless
@@ -32,7 +32,6 @@ cycler==0.12.1
 datamodel-code-generator==0.26.1
 defusedxml==0.7.1
 distro==1.9.0
-Django==5.1.15
 django-annoying==0.10.6
 django-cors-headers==4.7.0
 django-csp==3.7
