@@ -1,0 +1,152 @@
+/* ===== GLOBAL ===== */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #005461; /* soft gray background */
+    color: #1E293B;       /* dark slate text */
+}
+
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: #FFFFFF;    /* container white */
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.07);
+    border: 1px solid #E2E8F0;
+}
+
+/* ===== TEXT ===== */
+h1 {
+    margin: 0 0 8px;
+    color: #005461;  /* primary blue-dark */
+}
+
+p.lead {
+    color: #475569;
+}
+
+.center {
+    text-align: center;
+}
+
+.muted {
+    color: #64748B;
+}
+
+.small {
+    font-size: 0.9rem;
+}
+
+/* ===== BUTTON ===== */
+.btn {
+    display: inline-block;
+    background: #005461;      /* primary blue-dark */
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    font-weight: 600;
+    transition: 0.25s ease;
+}
+
+.btn:hover {
+    background: #007A8C;     /* lighter blue hover */
+    box-shadow: 0 4px 12px rgba(0, 90, 97, 0.3);
+}
+
+.btn.secondary {
+    background: #64748B;     /* gray secondary */
+}
+
+.btn.secondary:hover {
+    background: #475569;
+}
+
+/* ===== STEPS ===== */
+.step { display: none; }
+.step.active { display: block; }
+
+/* ===== OPTIONS ===== */
+.options {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin: 22px 0;
+}
+
+.card {
+    flex: 1;
+    border: 1px solid #E2E8F0;
+    padding: 18px;
+    border-radius: 12px;
+    background: #FFFFFF;
+    transition: 0.25s ease;
+    cursor: pointer;
+}
+
+.card:hover {
+    box-shadow: 0 6px 12px rgba(0,84,97,0.25);
+    transform: translateY(-3px);
+    border-color: #005461;
+}
+
+/* ===== INPUT ===== */
+input[type=file] {
+    display: block;
+    margin-top: 12px;
+}
+
+#result, #videoResult {
+    max-width: 100%;
+    margin-top: 12px;
+    border-radius: 8px;
+    border: 1px solid #CBD5E1;
+}
+
+/* ===== NAV ===== */
+.nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+/* ===== TRAINING SECTION ===== */
+.training-section {
+    justify-content: center;
+    text-align: center;
+    margin-top: 50px;
+    margin: 20px;
+    padding: 24px;
+    background: #F4F4F4;  /* soft gray */
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+}
+
+.training-section h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #005461; /* dark blue accent */
+}
+
+.training-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.training-gallery img {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #CBD5E1;
+    transition: 0.25s ease;
+}
+
+.training-gallery img:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 14px rgba(0,84,97,0.25);
+    border-color: #005461;
+}

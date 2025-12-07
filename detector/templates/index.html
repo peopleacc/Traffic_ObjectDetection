@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>YOLO GUI</title>
+    <link rel="stylesheet" href="{% static 'detector/style.css' %}">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="center">Project Sistem Cerdas </h1>
+        <p class="lead center">Mendeteksi Lampu Lalu Lintas.</p>
+
+        <!-- Step 1: Welcome -->
+        <div id="step-welcome" class="step active">
+            <div class="center">
+                <button class="btn" onclick="goToChoice()">Mulai</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Choose upload type -->
+        <div id="step-choice" class="step">
+            <p class="center">Pilih jenis file yang ingin Anda upload:</p>
+            <div class="options">
+                <div class="card center">
+                    <h3>Gambar</h3>
+                    <p class="muted small">Upload file gambar (jpg, png)</p>
+                    <div style="margin-top:12px"><button class="btn" onclick="startUpload('image')">Pilih
+                            Gambar</button></div>
+                </div>
+                <div class="card center">
+                    <h3>Video</h3>
+                    <p class="muted small">Upload file video (mp4, avi)</p>
+                    <div style="margin-top:12px"><button class="btn" onclick="startUpload('video')">Pilih Video</button>
+                    </div>
+                </div>
+                <div class="card center">
+                    <h3>Camera</h3>
+                    <p class="muted small">Gunakan kamera webcam untuk menangkap gambar</p>
+                    <div style="margin-top:12px"><button class="btn" onclick="startUpload('camera')">Gunakan
+                            Kamera</button></div>
+                </div>
+            </div>
+            <div class="nav">
+                <a class="muted" href="#" onclick="goToWelcome();return false;">Kembali</a>
+            </div>
+        </div>
+
+        <!-- Step 3: Upload -->
+        <div id="step-upload" class="step">
+            <h3 id="upload-title">Upload</h3>
+            <div id="upload-form">
+                <input type="file" id="fileInput" accept="image/*,video/*">
+                <video id="cameraPreview" autoplay playsinline
+                    style="display:none; max-width:100%; border-radius:6px; margin-top:12px"></video>
+                <canvas id="cameraCanvas" style="display:none"></canvas>
+                <div id="cameraControls" style="margin-top:8px; display:none">
+                    <button class="btn" id="startCameraBtn" onclick="startCamera()">Start Camera</button>
+                    <button class="btn" id="stopCameraBtn" style="background:#6c757d; display:none"
+                        onclick="stopCamera();return false;">Stop Camera</button>
+                </div>
+                <div id="status" class="muted small" style="margin-top:8px"></div>
+                <div style="margin-top:12px">
+                    <button class="btn" id="uploadBtn" onclick="doUpload()">Upload & Prediksi</button>
+                    <button class="btn" style="background:#6c757d" onclick="goToChoice();return false;">Batal</button>
+                </div>
+            </div>
+
+            <div id="results" style="margin-top:16px">
+                <img id="result" style="display:none" />
+                <video id="videoResult" controls style="display:none"></video>
+                <div id="unitIndicator" class="center" style="display:none; margin-top:12px">
+                    <div id="carIcon" style="font-size:40px">🚗</div>
+                    <div id="carStatus" style="font-weight:700; font-size:18px; margin-top:6px; color:green">JALAN</div>
+                </div>
+                <!-- hidden canvas used for analyzing video frames -->
+                <canvas id="videoAnalysisCanvas" style="display:none"></canvas>
+                <div id="downloadArea" style="margin-top:12px">
+                    <a id="downloadLink" class="btn" style="display:none; text-decoration:none;">Download Video</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showStep(id) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+        function goToChoice() { showStep('step-choice'); }
+        function goToWelcome() { showStep('step-welcome'); }
+
+        let currentType = 'image';
+        let lastObjectUrl = null; // remember object URL to revoke
+        let selectedFileName = null;
+        let cameraStream = null;
+        function startUpload(type) {
+            currentType = type;
+            document.getElementById('upload-title').innerText = (type === 'image') ? 'Upload Gambar' : 'Upload Video';
+            document.getElementById('fileInput').value = null;
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('videoResult').style.display = 'none';
+            document.getElementById('downloadLink').style.display = 'none';
+            if (lastObjectUrl) { URL.revokeObjectURL(lastObjectUrl); lastObjectUrl = null; }
+            // show/hide elements depending on mode
+            const fileInput = document.getElementById('fileInput');
+            const camPreview = document.getElementById('cameraPreview');
+            const camControls = document.getElementById('cameraControls');
+            if (type === 'camera') {
+                fileInput.style.display = 'none';
+                camPreview.style.display = 'block';
+                camControls.style.display = 'block';
+                document.getElementById('uploadBtn').innerText = 'Capture & Prediksi';
+            } else {
+                fileInput.style.display = 'block';
+                camPreview.style.display = 'none';
+                camControls.style.display = 'none';
+                stopCamera();
+                document.getElementById('uploadBtn').innerText = 'Upload & Prediksi';
+            }
+            showStep('step-upload');
+        }
+
+        function startCamera() {
+            const constraints = { video: { facingMode: 'environment' }, audio: false };
+            const camPreview = document.getElementById('cameraPreview');
+            const startBtn = document.getElementById('startCameraBtn');
+            const stopBtn = document.getElementById('stopCameraBtn');
+            startBtn.disabled = true;
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    cameraStream = stream;
+                    camPreview.srcObject = stream;
+                    camPreview.play();
+                    startBtn.style.display = 'none';
+                    stopBtn.style.display = 'inline-block';
+                })
+                .catch(err => {
+                    startBtn.disabled = false;
+                    alert('Gagal mengakses kamera: ' + err.message);
+                    console.error('camera error', err);
+                });
+        }
+
+        function stopCamera() {
+            const camPreview = document.getElementById('cameraPreview');
+            const startBtn = document.getElementById('startCameraBtn');
+            const stopBtn = document.getElementById('stopCameraBtn');
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            try { camPreview.pause(); camPreview.srcObject = null; } catch (e) { }
+            startBtn.style.display = 'inline-block';
+            startBtn.disabled = false;
+            stopBtn.style.display = 'none';
+        }
+
+        // Read cookie by name (Django's recommended approach)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function doUpload() {
+            const input = document.getElementById('fileInput');
+            if (!input.files || input.files.length === 0) { alert('Pilih file terlebih dahulu'); return; }
+            let fd;
+            if (currentType === 'camera') {
+                // capture current frame from cameraPreview into a blob
+                const video = document.getElementById('cameraPreview');
+                const canvas = document.getElementById('cameraCanvas');
+                const w = video.videoWidth || 640;
+                const h = video.videoHeight || 480;
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, w, h);
+                // convert to blob
+                const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg'));
+                if (!blob) { alert('Gagal menangkap frame'); document.getElementById('uploadBtn').disabled = false; return; }
+                fd = new FormData();
+                // filename indicates capture
+                const name = selectedFileName || 'camera_capture.jpg';
+                fd.append('file', blob, name);
+            } else {
+                const file = input.files[0];
+                selectedFileName = file.name;
+                fd = new FormData();
+                fd.append('file', file);
+            }
+
+            const csrftoken = getCookie('csrftoken');
+
+            const url = (currentType === 'image') ? '/upload-image/' : '/upload-video/';
+
+            const statusEl = document.getElementById('status');
+            statusEl.innerText = 'Uploading — please wait...';
+            document.getElementById('uploadBtn').disabled = true;
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken },
+                body: fd
+            })
+                .then(async response => {
+                    if (!response.ok) {
+                        // Try to parse JSON error message
+                        let msg = 'Upload failed: ' + response.status;
+                        try {
+                            const j = await response.json();
+                            msg = j.error || JSON.stringify(j);
+                        } catch (e) {
+                            try { msg = await response.text(); } catch (e) { }
+                        }
+                        throw new Error(msg);
+                    }
+
+                    const ct = (response.headers.get('content-type') || '').toLowerCase();
+                    if (ct.includes('application/json')) {
+                        const j = await response.json();
+                        const msg = j.error || JSON.stringify(j);
+                        throw new Error(msg);
+                    }
+
+                    return response.blob();
+                })
+                .then(blob => {
+                    statusEl.innerText = '';
+                    if (currentType === 'image') {
+                        const img = document.getElementById('result');
+                        img.src = URL.createObjectURL(blob);
+                        img.style.display = 'block';
+                        document.getElementById('videoResult').style.display = 'none';
+                        // hide download for image (or optionally allow download)
+                        document.getElementById('downloadLink').style.display = 'none';
+                    } else {
+                        const vid = document.getElementById('videoResult');
+                        if (lastObjectUrl) { URL.revokeObjectURL(lastObjectUrl); lastObjectUrl = null; }
+                        const objUrl = URL.createObjectURL(blob);
+                        lastObjectUrl = objUrl;
+                        vid.src = objUrl;
+                        vid.style.display = 'block';
+                        document.getElementById('result').style.display = 'none';
+                        // show download link
+                        const dl = document.getElementById('downloadLink');
+                        dl.href = objUrl;
+                        // try to set a friendly filename
+                        try {
+                            const base = selectedFileName ? selectedFileName.replace(/\.[^.]*$/, '') : 'result';
+                            dl.download = base + '_result.mp4';
+                        } catch (e) { dl.download = 'result.mp4'; }
+                        dl.style.display = 'inline-block';
+                        // start analysis for unit indicator
+                        try { startVideoAnalysis(vid); } catch(e) { console.error('startVideoAnalysis error', e); }
+                    }
+                })
+                .catch(err => {
+                    statusEl.innerText = '';
+                    // show nicer alert and log to console
+                    alert('Error: ' + err.message);
+                    console.error('Upload error:', err);
+                })
+                .finally(() => { document.getElementById('uploadBtn').disabled = false; });
+        }
+
+        // --- Video color analysis for unit indicator ---
+        let _videoAnalysisTimer = null;
+        function startVideoAnalysis(videoEl) {
+            stopVideoAnalysis();
+            const canvas = document.getElementById('videoAnalysisCanvas');
+            const statusEl = document.getElementById('unitIndicator');
+            const carStatus = document.getElementById('carStatus');
+            const carIcon = document.getElementById('carIcon');
+            if (!videoEl) return;
+
+            // small analysis size to be fast
+            const w = 160, h = 120;
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            function analyzeFrame() {
+                try {
+                    if (videoEl.paused || videoEl.ended) return;
+                    ctx.drawImage(videoEl, 0, 0, w, h);
+                    const img = ctx.getImageData(0, 0, w, h);
+                    const data = img.data;
+                    let redCount = 0, greenCount = 0;
+                    // sample pixels to reduce CPU
+                    const step = 4 * 6; // every 6th pixel
+                    for (let i = 0; i < data.length; i += step) {
+                        const r = data[i], g = data[i+1], b = data[i+2];
+                        if (r > 140 && r > g + 40 && r > b + 40) redCount++;
+                        if (g > 140 && g > r + 40 && g > b + 40) greenCount++;
+                    }
+
+                    // decide status based on counts and thresholds
+                    const total = redCount + greenCount;
+                    if (total === 0) {
+                        // no strong color detected
+                        carStatus.innerText = 'AWAS';
+                        carStatus.style.color = '#666';
+                    } else if (redCount > greenCount) {
+                        carStatus.innerText = 'BERHENTI';
+                        carStatus.style.color = 'red';
+                        carIcon.innerText = '⛔️';
+                    } else {
+                        carStatus.innerText = 'JALAN';
+                        carStatus.style.color = 'green';
+                        carIcon.innerText = '🚗';
+                    }
+                    statusEl.style.display = 'block';
+                } catch (e) {
+                    console.error('analyzeFrame error', e);
+                }
+            }
+
+            // run analysis periodically while video plays
+            _videoAnalysisTimer = setInterval(analyzeFrame, 500);
+            // also stop when video ends or is paused
+            videoEl.addEventListener('pause', stopVideoAnalysis);
+            videoEl.addEventListener('ended', stopVideoAnalysis);
+        }
+
+        function stopVideoAnalysis() {
+            if (_videoAnalysisTimer) { clearInterval(_videoAnalysisTimer); _videoAnalysisTimer = null; }
+            const statusEl = document.getElementById('unitIndicator');
+            if (statusEl) statusEl.style.display = 'none';
+            // reset icon/text
+            try { document.getElementById('carIcon').innerText = '🚗'; document.getElementById('carStatus').innerText = 'JALAN'; document.getElementById('carStatus').style.color = 'green'; } catch(e){}
+        }
+    </script>
+
+  
+</div>
+  <div class="training-section">
+    <h2>📊 Dokumentasi & Hasil Training YOLO</h2>
+    <p class="center muted small">Berikut adalah grafik dan hasil training model YOLO Anda.</p>
+
+    <div class="training-gallery">
+        <!-- Silakan isi gambar Anda di sini -->
+        <img src="/static/training/image1.png" alt="Loss Curve">
+        <img src="/static/training/image2.png" alt="Confusion Matrix">
+        <img src="/static/training/image3.png" alt="Training Results">
+        <img src="/static/training/image4.jpg" alt="Precision-Recall Curve">
+    </div>
+</body>
+
+</html>
